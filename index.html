@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gym Attendance</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #0a0a23; color: #fff; text-align: center; padding: 20px; }
+    h1 { color: #9b30ff; }
+    .member-box {
+      border: 2px solid #9b30ff;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 15px auto;
+      width: 90%;
+      max-width: 400px;
+      background: #120030;
+    }
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      background: #6f00ff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover { background: #9b30ff; }
+    button.present.selected { background: #28a745 !important; } /* green for Present */
+    button.absent.selected { background: #dc3545 !important; }  /* red for Absent */
+    textarea, select {
+      width: 90%;
+      padding: 8px;
+      margin-top: 8px;
+      border-radius: 6px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏋️ Gym Attendance</h1>
+  <p id="date"></p>
+
+  <div id="members"></div>
+  <button onclick="saveAll()">✅ Save Attendance</button>
+
+  <script>
+    const today = new Date().toLocaleDateString();
+    document.getElementById("date").innerText = "📅 " + today;
+
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbxogBylFB4M4XfeKrDNWycodymG-HacB-Pt5yucjpFYtFCCiHzlXm8bhYme0V62PnmQ/exec"; // replace with your Apps Script Web App URL
+    const members = ["Broky", "Sudhir",];
+
+    let attendanceData = {};
+
+    function renderMembers() {
+      const container = document.getElementById("members");
+      container.innerHTML = "";
+      members.forEach(name => {
+        container.innerHTML += `
+          <div class="member-box" id="${name}">
+            <h2>${name}</h2>
+            <button id="present-${name}" class="present" onclick="markStatus('${name}', 'Present')">Present</button>
+            <button id="absent-${name}" class="absent" onclick="markStatus('${name}', 'Absent')">Absent</button>
+            <div id="reason-${name}" style="display:none;">
+              <textarea placeholder="Reason for absence" onchange="updateReason('${name}', this.value)"></textarea>
+            </div>
+            <p>Option 1: 
+              <select onchange="updateOption('${name}', 'option1', this.value)">
+                <option value="">--</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </p>
+            <p>Option 2: 
+              <select onchange="updateOption('${name}', 'option2', this.value)">
+                <option value="">--</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </p>
+            <p>Option 3: 
+              <select onchange="updateOption('${name}', 'option3', this.value)">
+                <option value="">--</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </p>
+          </div>
+        `;
+        attendanceData[name] = {status: "", reason: "", option1: "", option2: "", option3: ""};
+      });
+    }
+
+    function markStatus(name, status) {
+      attendanceData[name].status = status;
+
+      // remove selection from both buttons
+      document.getElementById("present-" + name).classList.remove("selected");
+      document.getElementById("absent-" + name).classList.remove("selected");
+
+      // add selection to chosen button
+      document.getElementById(status.toLowerCase() + "-" + name).classList.add("selected");
+
+      if (status === "Absent") {
+        document.getElementById("reason-" + name).style.display = "block";
+      } else {
+        document.getElementById("reason-" + name).style.display = "none";
+        attendanceData[name].reason = "";
+      }
+    }
+
+    function updateReason(name, reason) {
+      attendanceData[name].reason = reason;
+    }
+
+    function updateOption(name, option, value) {
+      attendanceData[name][option] = value;
+    }
+
+    function saveAll() {
+      members.forEach(name => {
+        fetch(SHEET_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            date: today,
+            name: name,
+            status: attendanceData[name].status || "Not Marked",
+            reason: attendanceData[name].reason || "-",
+            option1: attendanceData[name].option1 || "-",
+            option2: attendanceData[name].option2 || "-",
+            option3: attendanceData[name].option3 || "-"
+          })
+        });
+      });
+      alert("✅ Saved to Google Sheets!");
+    }
+
+    renderMembers();
+  </script>
+</body>
+</html>
